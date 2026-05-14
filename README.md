@@ -11,19 +11,19 @@ Extensible Python linter with a Rust core.
 Requires Python 3.14+.
 
 ```bash
-uv add jg-linter
+uv add jg-lint
 ```
 
 or with pip:
 
 ```bash
-pip install jg-linter
+pip install jg-lint
 ```
 
 or with Poetry:
 
 ```bash
-poetry add jg-linter
+poetry add jg-lint
 ```
 
 ### Development install
@@ -75,16 +75,16 @@ y = another()  # noqa: MY001, MY002
 
 ## Configuration
 
-All configuration lives in `pyproject.toml` under `[tool.jg-linter]`:
+All configuration lives in `pyproject.toml` under `[tool.jg-lint]`:
 
 ```toml
-[tool.jg-linter]
+[tool.jg-lint]
 select = ["MY"]              # only run rules matching these prefixes (empty = all)
 ignore = ["MY002"]           # skip these rules globally
 exclude = [".venv/**", "build/**"]
 plugins = ["my_rules"]       # Python modules containing custom rules
 
-[tool.jg-linter.per-file-ignores]
+[tool.jg-lint.per-file-ignores]
 "tests/**" = ["MY001"]       # skip MY001 in test files
 ```
 
@@ -128,7 +128,7 @@ Set `test_only = True` on a rule to run it only against test files (files named 
 Add the module to `pyproject.toml`:
 
 ```toml
-[tool.jg-linter]
+[tool.jg-lint]
 plugins = ["my_rules"]
 ```
 
