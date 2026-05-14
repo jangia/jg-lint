@@ -1,0 +1,27 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "jg-linter"
+version = "0.1.0"
+description = "Extensible Python linter written in Rust"
+requires-python = ">=3.14"
+
+[project.scripts]
+jg-lint = "jg_linter.cli:main"
+
+[tool.maturin]
+features = ["extension-module"]
+python-source = "python"
+module-name = "jg_linter._internal"
+
+[tool.jg-linter]
+select = []
+ignore = []
+exclude = [".venv/**", "__pycache__/**", "*.egg-info/**", ".git/**", "target/**"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
