@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: "3.14"
           allow-prereleases: true
-      - run: pip install uv
+      - uses: astral-sh/setup-uv@v6
       - run: uv sync
-      - run: uv run maturin develop
+      - run: uv run --with maturin maturin develop
       - run: uv run pytest tests/ -v
