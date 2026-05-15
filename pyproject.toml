@@ -4,8 +4,9 @@ build-backend = "maturin"
 
 [project]
 name = "jg-lint"
-version = "0.1.0"
+version = "0.1.1"
 description = "Extensible Python linter written in Rust"
+readme = "README.md"
 requires-python = ">=3.14"
 
 [project.scripts]
