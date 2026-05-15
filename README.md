@@ -1,7 +1,3 @@
-<p>
-  <img src="assets/images/logo.png" alt="jg-lint" width="100">
-</p>
-
 # jg-lint
 
 Extensible Python linter with a Rust core.
@@ -82,7 +78,7 @@ All configuration lives in `pyproject.toml` under `[tool.jg-lint]`:
 select = ["MY"]              # only run rules matching these prefixes (empty = all)
 ignore = ["MY002"]           # skip these rules globally
 exclude = [".venv/**", "build/**"]
-plugins = ["my_rules"]       # Python modules containing custom rules
+rules_path = "./rules"       # directory containing your custom rule modules
 
 [tool.jg-lint.per-file-ignores]
 "tests/**" = ["MY001"]       # skip MY001 in test files
@@ -92,8 +88,9 @@ plugins = ["my_rules"]       # Python modules containing custom rules
 
 ### 1. Create a rule module
 
+Put it inside the directory you've configured as `rules_path` (e.g. `./rules/no_todo.py` or `./rules/no_todo/__init__.py`).
+
 ```python
-# my_rules.py (or my_rules/__init__.py)
 from jg_linter import Rule, Violation
 
 
@@ -123,16 +120,14 @@ Each rule needs:
 
 Set `test_only = True` on a rule to run it only against test files (files named `test_*.py`, `*_test.py`, or inside a `tests/` directory).
 
-### 2. Register the plugin
-
-Add the module to `pyproject.toml`:
+### 2. Point `jg-lint` at the rules folder
 
 ```toml
 [tool.jg-lint]
-plugins = ["my_rules"]
+rules_path = "./rules"
 ```
 
-Make sure the module is importable (installed or on `PYTHONPATH`).
+Every top-level `.py` file and package inside `rules_path` is imported automatically; any module exposing `get_rules()` contributes rules. Files and folders starting with `_` are skipped. The rules directory is prepended to `sys.path` during loading, so no `PYTHONPATH` setup is needed.
 
 ### 3. Run
 

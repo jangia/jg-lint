@@ -11,19 +11,44 @@ from jg_linter.plugin import Rule
 
 
 def discover_plugins(config_path: str | None = None) -> list[Rule]:
-    pyproject_path = Path(config_path or ".") / "pyproject.toml"
+    config_dir = Path(config_path or ".").resolve()
+    pyproject_path = config_dir / "pyproject.toml"
     if not pyproject_path.exists():
         return []
 
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
 
-    plugin_modules = data.get("tool", {}).get("jg-linter", {}).get("plugins", [])
+    rules_path = data.get("tool", {}).get("jg-linter", {}).get("rules_path")
+    if not rules_path:
+        return []
+
+    rules_dir = (config_dir / rules_path).resolve()
+    if not rules_dir.is_dir():
+        raise FileNotFoundError(f"rules_path does not exist: {rules_dir}")
+
+    module_names: list[str] = []
+    for entry in sorted(rules_dir.iterdir()):
+        if entry.name.startswith("_"):
+            continue
+        if entry.is_dir() and (entry / "__init__.py").exists():
+            module_names.append(entry.name)
+        elif entry.is_file() and entry.suffix == ".py":
+            module_names.append(entry.stem)
+
     rules: list[Rule] = []
-    for module_path in plugin_modules:
-        mod = importlib.import_module(module_path)
-        if hasattr(mod, "get_rules"):
-            rules.extend(mod.get_rules())
+    rules_dir_str = str(rules_dir)
+    added_to_path = rules_dir_str not in sys.path
+    if added_to_path:
+        sys.path.insert(0, rules_dir_str)
+    try:
+        for name in module_names:
+            mod = importlib.import_module(name)
+            if hasattr(mod, "get_rules"):
+                rules.extend(mod.get_rules())
+    finally:
+        if added_to_path:
+            sys.path.remove(rules_dir_str)
 
     return rules
 

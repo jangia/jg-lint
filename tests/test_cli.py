@@ -28,76 +28,8 @@ class TestFormatText:
         assert "Found 2 violation(s)" in output
 
 
-class TestDiscoverPlugins:
-    def test_no_pyproject(self, tmp_path):
-        rules = discover_plugins(str(tmp_path))
-        assert rules == []
-
-    def test_empty_plugins_list(self, tmp_project):
-        root = tmp_project(pyproject="""\
-[tool.jg-linter]
-plugins = []
-""")
-        rules = discover_plugins(str(root))
-        assert rules == []
-
-    def test_missing_module_raises(self, tmp_project):
-        root = tmp_project(pyproject="""\
-[tool.jg-linter]
-plugins = ["nonexistent_module_xyz"]
-""")
-        with pytest.raises(ModuleNotFoundError):
-            discover_plugins(str(root))
-
-    def test_loads_plugin_module(self, tmp_project, monkeypatch):
-        root = tmp_project(pyproject="""\
-[tool.jg-linter]
-plugins = ["my_plugin"]
-""")
-        plugin_dir = root / "my_plugin"
-        plugin_dir.mkdir()
-        (plugin_dir / "__init__.py").write_text("""\
+RULE_TEMPLATE = """\
 from jg_linter.plugin import Rule
-from jg_linter._internal import Violation
-
-class MyRule(Rule):
-    code = "MY001"
-    message = "my rule"
-
-    def check(self, file_path, content):
-        return []
-
-def get_rules():
-    return [MyRule()]
-""")
-        monkeypatch.syspath_prepend(str(root))
-        rules = discover_plugins(str(root))
-        assert len(rules) == 1
-        assert rules[0].code == "MY001"
-
-    def test_module_without_get_rules_ignored(self, tmp_project, monkeypatch):
-        root = tmp_project(pyproject="""\
-[tool.jg-linter]
-plugins = ["empty_plugin"]
-""")
-        plugin_dir = root / "empty_plugin"
-        plugin_dir.mkdir()
-        (plugin_dir / "__init__.py").write_text("x = 1\n")
-        monkeypatch.syspath_prepend(str(root))
-        rules = discover_plugins(str(root))
-        assert rules == []
-
-    def test_multiple_plugins(self, tmp_project, monkeypatch):
-        root = tmp_project(pyproject="""\
-[tool.jg-linter]
-plugins = ["plugin_a", "plugin_b"]
-""")
-        for name, code in [("plugin_a", "A001"), ("plugin_b", "B001")]:
-            d = root / name
-            d.mkdir()
-            (d / "__init__.py").write_text(f"""\
-from jg_linter.plugin import Rule
-from jg_linter._internal import Violation
 
 class R(Rule):
     code = "{code}"
@@ -107,11 +39,86 @@ class R(Rule):
 
 def get_rules():
     return [R()]
+"""
+
+
+class TestDiscoverPlugins:
+    def test_no_pyproject(self, tmp_path):
+        rules = discover_plugins(str(tmp_path))
+        assert rules == []
+
+    def test_no_rules_path_configured(self, tmp_project):
+        root = tmp_project(pyproject="[tool.jg-linter]\n")
+        assert discover_plugins(str(root)) == []
+
+    def test_rules_path_missing_raises(self, tmp_project):
+        root = tmp_project(pyproject="""\
+[tool.jg-linter]
+rules_path = "./nope"
 """)
-        monkeypatch.syspath_prepend(str(root))
+        with pytest.raises(FileNotFoundError):
+            discover_plugins(str(root))
+
+    def test_loads_top_level_py_file(self, tmp_project):
+        root = tmp_project(pyproject="""\
+[tool.jg-linter]
+rules_path = "rules"
+""")
+        rules_dir = root / "rules"
+        rules_dir.mkdir()
+        (rules_dir / "my_rule.py").write_text(RULE_TEMPLATE.format(code="MY001"))
+
         rules = discover_plugins(str(root))
-        codes = {r.code for r in rules}
+        assert [r.code for r in rules] == ["MY001"]
+        assert str(rules_dir.resolve()) not in sys.path
+
+    def test_loads_package(self, tmp_project):
+        root = tmp_project(pyproject="""\
+[tool.jg-linter]
+rules_path = "rules"
+""")
+        pkg = root / "rules" / "my_pkg"
+        pkg.mkdir(parents=True)
+        (pkg / "__init__.py").write_text(RULE_TEMPLATE.format(code="PKG001"))
+
+        rules = discover_plugins(str(root))
+        assert [r.code for r in rules] == ["PKG001"]
+
+    def test_loads_multiple_modules(self, tmp_project):
+        root = tmp_project(pyproject="""\
+[tool.jg-linter]
+rules_path = "rules"
+""")
+        rules_dir = root / "rules"
+        rules_dir.mkdir()
+        (rules_dir / "a.py").write_text(RULE_TEMPLATE.format(code="A001"))
+        (rules_dir / "b.py").write_text(RULE_TEMPLATE.format(code="B001"))
+
+        codes = {r.code for r in discover_plugins(str(root))}
         assert codes == {"A001", "B001"}
+
+    def test_skips_underscore_prefixed(self, tmp_project):
+        root = tmp_project(pyproject="""\
+[tool.jg-linter]
+rules_path = "rules"
+""")
+        rules_dir = root / "rules"
+        rules_dir.mkdir()
+        (rules_dir / "_helpers.py").write_text("x = 1\n")
+        (rules_dir / "real.py").write_text(RULE_TEMPLATE.format(code="R001"))
+
+        rules = discover_plugins(str(root))
+        assert [r.code for r in rules] == ["R001"]
+
+    def test_module_without_get_rules_ignored(self, tmp_project):
+        root = tmp_project(pyproject="""\
+[tool.jg-linter]
+rules_path = "rules"
+""")
+        rules_dir = root / "rules"
+        rules_dir.mkdir()
+        (rules_dir / "empty.py").write_text("x = 1\n")
+        assert discover_plugins(str(root)) == []
 
 
 class TestRun:

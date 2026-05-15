@@ -15,8 +15,6 @@ pub struct Config {
     pub exclude: Vec<String>,
     #[serde(default, rename = "per-file-ignores")]
     pub per_file_ignores: HashMap<String, Vec<String>>,
-    #[serde(default)]
-    pub plugins: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
