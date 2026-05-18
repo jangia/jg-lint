@@ -156,7 +156,21 @@ class TestCheckFilesWithPythonRules:
 
 
 class TestCheckFilesNoqa:
-    def test_noqa_suppresses_violation(self, tmp_project):
+    def test_noqa_suppresses_violation_when_rule_opts_in(self, tmp_project):
+        root = tmp_project(files={"app.py": "x = 1  # noqa: TEST001\n"})
+
+        class AlwaysFail(Rule):
+            code = "TEST001"
+            message = "fail"
+            allow_noqa = True
+
+            def check(self, file_path: str, content: str) -> list:
+                return [Violation(file_path, 1, 0, self.code, self.message)]
+
+        violations = check_files([str(root)], [AlwaysFail()], str(root))
+        assert violations == []
+
+    def test_noqa_does_not_suppress_when_rule_opts_out(self, tmp_project):
         root = tmp_project(files={"app.py": "x = 1  # noqa: TEST001\n"})
 
         class AlwaysFail(Rule):
@@ -167,7 +181,7 @@ class TestCheckFilesNoqa:
                 return [Violation(file_path, 1, 0, self.code, self.message)]
 
         violations = check_files([str(root)], [AlwaysFail()], str(root))
-        assert violations == []
+        assert len(violations) == 1
 
     def test_noqa_wrong_code_does_not_suppress(self, tmp_project):
         root = tmp_project(files={"app.py": "x = 1  # noqa: OTHER001\n"})
@@ -175,6 +189,7 @@ class TestCheckFilesNoqa:
         class AlwaysFail(Rule):
             code = "TEST001"
             message = "fail"
+            allow_noqa = True
 
             def check(self, file_path: str, content: str) -> list:
                 return [Violation(file_path, 1, 0, self.code, self.message)]
@@ -188,6 +203,7 @@ class TestCheckFilesNoqa:
         class RuleA(Rule):
             code = "A001"
             message = "a"
+            allow_noqa = True
 
             def check(self, file_path: str, content: str) -> list:
                 return [Violation(file_path, 1, 0, self.code, self.message)]
@@ -195,6 +211,7 @@ class TestCheckFilesNoqa:
         class RuleB(Rule):
             code = "B001"
             message = "b"
+            allow_noqa = True
 
             def check(self, file_path: str, content: str) -> list:
                 return [Violation(file_path, 1, 0, self.code, self.message)]
@@ -202,6 +219,7 @@ class TestCheckFilesNoqa:
         class RuleC(Rule):
             code = "C001"
             message = "c"
+            allow_noqa = True
 
             def check(self, file_path: str, content: str) -> list:
                 return [Violation(file_path, 1, 0, self.code, self.message)]
@@ -259,7 +277,7 @@ ignore = ["A001"]
 
     def test_per_file_ignores(self, tmp_project):
         root = tmp_project(
-            pyproject=f"""\
+            pyproject="""\
 [tool.jg-linter]
 
 [tool.jg-linter.per-file-ignores]

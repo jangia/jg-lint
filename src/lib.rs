@@ -5,7 +5,6 @@ mod checker;
 mod config;
 mod discovery;
 mod noqa;
-mod python_ast;
 mod rule;
 mod rules;
 mod violation;

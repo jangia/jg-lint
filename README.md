@@ -62,12 +62,14 @@ Exit code is `1` if any violations are found, `0` otherwise.
 
 ### Inline suppression
 
-Suppress specific rules on a line with `# noqa`:
+Some rules opt in to per-line suppression via `# noqa`:
 
 ```python
 x = something()  # noqa: MY001
 y = another()  # noqa: MY001, MY002
 ```
+
+By design, `# noqa` is **not** honored by default — rules must explicitly set `allow_noqa = True` to allow it. This keeps suppression intentional and reserved for cases where the rule author has decided it's acceptable.
 
 ## Configuration
 
@@ -120,6 +122,8 @@ Each rule needs:
 
 Set `test_only = True` on a rule to run it only against test files (files named `test_*.py`, `*_test.py`, or inside a `tests/` directory).
 
+Set `allow_noqa = True` on a rule to allow inline `# noqa: CODE` suppression. Without this, the rule cannot be silenced per-line and can only be turned off project-wide via `ignore` or `per-file-ignores`.
+
 ### 2. Point `jg-lint` at the rules folder
 
 ```toml
@@ -141,3 +145,49 @@ src/utils.py:17:1: MY001 TODO comments should be tracked as issues
 
 Found 2 violation(s)
 ```
+
+## Contributing
+
+You need a Rust toolchain (stable), Python 3.14+, and [`uv`](https://docs.astral.sh/uv/).
+
+```bash
+git clone https://github.com/giacosoft/jg-lint.git
+cd jg-lint
+uv sync
+uv run maturin develop
+```
+
+### Tests
+
+```bash
+cargo test                 # Rust unit tests
+uv run pytest              # Python tests (rebuild with `maturin develop` if Rust changed)
+```
+
+### Linting and formatting
+
+Before opening a PR, run the same checks CI does:
+
+```bash
+# Rust
+cargo fmt --all -- --check          # formatting
+cargo clippy --all-targets -- -D warnings   # lints (fails on any warning)
+cargo audit                          # CVEs in dependencies (install with `cargo install cargo-audit`)
+
+# Python
+uv run ruff check .                  # lint
+uv run ruff format --check .         # format check
+```
+
+To auto-fix:
+
+```bash
+cargo fmt --all
+cargo clippy --fix --all-targets
+uv run ruff check --fix .
+uv run ruff format .
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

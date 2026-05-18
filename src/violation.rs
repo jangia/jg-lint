@@ -19,13 +19,7 @@ pub struct Violation {
 #[pymethods]
 impl Violation {
     #[new]
-    fn new(
-        file_path: String,
-        line: usize,
-        col: usize,
-        code: String,
-        message: String,
-    ) -> Self {
+    fn new(file_path: String, line: usize, col: usize, code: String, message: String) -> Self {
         Self {
             file_path,
             line,

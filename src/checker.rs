@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use pyo3::prelude::*;
@@ -34,6 +34,7 @@ fn run_builtin_rules(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_python_rules(
     file_path: &Path,
     fp_str: &str,
@@ -95,6 +96,23 @@ pub fn run_check(
     let config = config::load_config(project_root);
     let builtin_rules = all_builtin_rules();
 
+    let mut noqa_allowed: HashSet<String> = HashSet::new();
+    for rule in &builtin_rules {
+        if rule.allow_noqa() {
+            noqa_allowed.insert(rule.code().to_string());
+        }
+    }
+    for py_rule in python_rules {
+        let code: String = py_rule.getattr(py, "code")?.extract(py)?;
+        let allow: bool = py_rule
+            .getattr(py, "allow_noqa")
+            .and_then(|v| v.extract(py))
+            .unwrap_or(false);
+        if allow {
+            noqa_allowed.insert(code);
+        }
+    }
+
     let mut all_violations: Vec<Violation> = Vec::new();
     let mut file_contents: HashMap<String, String> = HashMap::new();
 
@@ -137,6 +155,6 @@ pub fn run_check(
         }
     }
 
-    all_violations.retain(|v| !noqa::is_suppressed(v, &file_contents));
+    all_violations.retain(|v| !noqa::is_suppressed(v, &file_contents, &noqa_allowed));
     Ok(all_violations)
 }

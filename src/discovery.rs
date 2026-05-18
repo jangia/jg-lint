@@ -44,9 +44,8 @@ pub fn is_test_file(path: &Path) -> bool {
         return true;
     }
 
-    path.components().any(|c| {
-        matches!(c, std::path::Component::Normal(s) if s == "tests")
-    })
+    path.components()
+        .any(|c| matches!(c, std::path::Component::Normal(s) if s == "tests"))
 }
 
 #[cfg(test)]

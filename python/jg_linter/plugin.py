@@ -7,6 +7,7 @@ class Rule:
     code: str = ""
     message: str = ""
     test_only: bool = False
+    allow_noqa: bool = False
 
     def check(self, file_path: str, content: str) -> list[Violation]:
         raise NotImplementedError

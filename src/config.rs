@@ -10,8 +10,6 @@ pub struct Config {
     #[serde(default)]
     pub ignore: Vec<String>,
     #[serde(default)]
-    pub include: Vec<String>,
-    #[serde(default)]
     pub exclude: Vec<String>,
     #[serde(default, rename = "per-file-ignores")]
     pub per_file_ignores: HashMap<String, Vec<String>>,

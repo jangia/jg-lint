@@ -71,9 +71,7 @@ def run(paths: list[str], python_rules: list[Rule], config_path: str | None) -> 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        prog="jg-lint", description="Extensible Python linter"
-    )
+    parser = argparse.ArgumentParser(prog="jg-lint", description="Extensible Python linter")
     sub = parser.add_subparsers(dest="command")
 
     check_parser = sub.add_parser("check", help="Lint Python files")
