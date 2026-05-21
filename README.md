@@ -49,6 +49,15 @@ jg-lint check --config path/to/project src/
 
 The `--config` flag points to the directory containing `pyproject.toml` (defaults to `.`).
 
+### Built-in rules
+
+| Code  | Description                                         |
+|-------|-----------------------------------------------------|
+| JG001 | Imports must be at module top level                 |
+| JG002 | `if` statements are not allowed in test functions (any function or method whose name starts with `test_`) |
+
+Built-in rules are **opt-in**: they only run when you list them in `select` (see [Configuration](#configuration)). For example, `select = ["JG*"]` enables every built-in rule, and `select = ["JG001"]` enables only `JG001`.
+
 Output looks like:
 
 ```
@@ -77,7 +86,7 @@ All configuration lives in `pyproject.toml` under `[tool.jg-lint]`:
 
 ```toml
 [tool.jg-lint]
-select = ["MY"]              # only run rules matching these prefixes (empty = all)
+select = ["MY001", "JG*"]    # rules to enable (see "Selecting rules" below)
 ignore = ["MY002"]           # skip these rules globally
 exclude = [".venv/**", "build/**"]
 rules_path = "./rules"       # directory containing your custom rule modules
@@ -85,6 +94,19 @@ rules_path = "./rules"       # directory containing your custom rule modules
 [tool.jg-lint.per-file-ignores]
 "tests/**" = ["MY001"]       # skip MY001 in test files
 ```
+
+### Selecting rules
+
+Each entry in `select`, `ignore`, and `per-file-ignores` is matched against a rule's code with the following pattern semantics:
+
+- `"*"` — matches every code.
+- `"JG*"` — matches every code starting with `JG` (e.g. `JG001`, `JG042`).
+- `"JG001"` — exact match.
+
+Defaults when `select` is empty:
+
+- **Built-in rules** (e.g. `JG001`, `JG002`) are **not** enabled. List them explicitly with `select = ["JG*"]` or by code.
+- **Plugin rules** from `rules_path` are enabled.
 
 ## Writing custom rules
 

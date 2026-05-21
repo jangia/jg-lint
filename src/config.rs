@@ -26,22 +26,32 @@ struct ToolSection {
     jg_linter: Option<Config>,
 }
 
+fn pattern_matches(pattern: &str, code: &str) -> bool {
+    if pattern == "*" {
+        return true;
+    }
+    if let Some(prefix) = pattern.strip_suffix('*') {
+        return code.starts_with(prefix);
+    }
+    pattern == code
+}
+
 impl Config {
-    pub fn is_rule_selected(&self, code: &str) -> bool {
+    pub fn is_rule_selected(&self, code: &str, is_builtin: bool) -> bool {
         if self.select.is_empty() {
-            return true;
+            return !is_builtin;
         }
-        self.select.iter().any(|s| code.starts_with(s.as_str()))
+        self.select.iter().any(|p| pattern_matches(p, code))
     }
 
     pub fn is_rule_ignored(&self, code: &str, file_path: &Path) -> bool {
-        if self.ignore.iter().any(|s| code.starts_with(s.as_str())) {
+        if self.ignore.iter().any(|p| pattern_matches(p, code)) {
             return true;
         }
         let fp = file_path.to_string_lossy();
         for (pattern, codes) in &self.per_file_ignores {
             if let Ok(pat) = glob::Pattern::new(pattern) {
-                if pat.matches(&fp) && codes.iter().any(|c| code.starts_with(c.as_str())) {
+                if pat.matches(&fp) && codes.iter().any(|c| pattern_matches(c, code)) {
                     return true;
                 }
             }
@@ -88,10 +98,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_select_enables_all() {
+    fn empty_select_enables_plugins_not_builtins() {
         let config = Config::default();
-        assert!(config.is_rule_selected("JG001"));
-        assert!(config.is_rule_selected("PLUGIN001"));
+        assert!(config.is_rule_selected("PLUGIN001", false));
+        assert!(!config.is_rule_selected("JG001", true));
     }
 
     #[test]
@@ -100,19 +110,53 @@ mod tests {
             select: vec!["JG001".to_string()],
             ..Default::default()
         };
-        assert!(config.is_rule_selected("JG001"));
-        assert!(!config.is_rule_selected("JG002"));
+        assert!(config.is_rule_selected("JG001", true));
+        assert!(!config.is_rule_selected("JG002", true));
+        assert!(config.is_rule_selected("JG001", false));
     }
 
     #[test]
-    fn select_by_prefix() {
+    fn select_wildcard_prefix() {
+        let config = Config {
+            select: vec!["JG*".to_string()],
+            ..Default::default()
+        };
+        assert!(config.is_rule_selected("JG001", true));
+        assert!(config.is_rule_selected("JG999", true));
+        assert!(!config.is_rule_selected("PLUGIN001", true));
+        assert!(!config.is_rule_selected("PLUGIN001", false));
+    }
+
+    #[test]
+    fn select_wildcard_all_matches_everything() {
+        let config = Config {
+            select: vec!["*".to_string()],
+            ..Default::default()
+        };
+        assert!(config.is_rule_selected("JG001", true));
+        assert!(config.is_rule_selected("PLUGIN001", false));
+        assert!(config.is_rule_selected("ANY999", true));
+    }
+
+    #[test]
+    fn select_non_wildcard_does_not_prefix_match() {
         let config = Config {
             select: vec!["JG".to_string()],
             ..Default::default()
         };
-        assert!(config.is_rule_selected("JG001"));
-        assert!(config.is_rule_selected("JG999"));
-        assert!(!config.is_rule_selected("PLUGIN001"));
+        assert!(!config.is_rule_selected("JG001", true));
+        assert!(config.is_rule_selected("JG", true));
+    }
+
+    #[test]
+    fn builtin_requires_explicit_select() {
+        let config = Config::default();
+        assert!(!config.is_rule_selected("JG001", true));
+        let config = Config {
+            select: vec!["JG001".to_string()],
+            ..Default::default()
+        };
+        assert!(config.is_rule_selected("JG001", true));
     }
 
     #[test]
@@ -126,6 +170,27 @@ mod tests {
     }
 
     #[test]
+    fn ignore_wildcard_prefix() {
+        let config = Config {
+            ignore: vec!["JG*".to_string()],
+            ..Default::default()
+        };
+        assert!(config.is_rule_ignored("JG001", Path::new("foo.py")));
+        assert!(config.is_rule_ignored("JG999", Path::new("foo.py")));
+        assert!(!config.is_rule_ignored("PLUGIN001", Path::new("foo.py")));
+    }
+
+    #[test]
+    fn ignore_wildcard_all() {
+        let config = Config {
+            ignore: vec!["*".to_string()],
+            ..Default::default()
+        };
+        assert!(config.is_rule_ignored("JG001", Path::new("foo.py")));
+        assert!(config.is_rule_ignored("PLUGIN001", Path::new("foo.py")));
+    }
+
+    #[test]
     fn per_file_ignores() {
         let mut pfi = HashMap::new();
         pfi.insert("tests/**".to_string(), vec!["JG001".to_string()]);
@@ -135,6 +200,19 @@ mod tests {
         };
         assert!(config.is_rule_ignored("JG001", Path::new("tests/test_foo.py")));
         assert!(!config.is_rule_ignored("JG001", Path::new("src/foo.py")));
+    }
+
+    #[test]
+    fn per_file_ignores_wildcard() {
+        let mut pfi = HashMap::new();
+        pfi.insert("tests/**".to_string(), vec!["JG*".to_string()]);
+        let config = Config {
+            per_file_ignores: pfi,
+            ..Default::default()
+        };
+        assert!(config.is_rule_ignored("JG001", Path::new("tests/test_foo.py")));
+        assert!(config.is_rule_ignored("JG999", Path::new("tests/test_foo.py")));
+        assert!(!config.is_rule_ignored("PLUGIN001", Path::new("tests/test_foo.py")));
     }
 
     #[test]

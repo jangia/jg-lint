@@ -23,7 +23,7 @@ fn run_builtin_rules(
         if rule.test_only() && !is_test {
             continue;
         }
-        if !config.is_rule_selected(rule.code()) {
+        if !config.is_rule_selected(rule.code(), true) {
             continue;
         }
         if config.is_rule_ignored(rule.code(), file_path) {
@@ -47,7 +47,7 @@ fn run_python_rules(
 ) -> PyResult<()> {
     for py_rule in python_rules {
         let code: String = py_rule.getattr(py, "code")?.extract(py)?;
-        if !config.is_rule_selected(&code) {
+        if !config.is_rule_selected(&code, false) {
             continue;
         }
         if config.is_rule_ignored(&code, file_path) {

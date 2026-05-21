@@ -232,10 +232,10 @@ class TestCheckFilesNoqa:
 
 
 class TestCheckFilesConfig:
-    def test_select_filters_rules(self, tmp_project):
+    def test_select_exact_code(self, tmp_project):
         pyproject = """\
 [tool.jg-linter]
-select = ["A"]
+select = ["A001"]
 """
         root = tmp_project(pyproject=pyproject, files={"app.py": "x = 1\n"})
 
@@ -257,6 +257,98 @@ select = ["A"]
         codes = [v.code for v in violations]
         assert "A001" in codes
         assert "B001" not in codes
+
+    def test_select_wildcard_prefix(self, tmp_project):
+        pyproject = """\
+[tool.jg-linter]
+select = ["A*"]
+"""
+        root = tmp_project(pyproject=pyproject, files={"app.py": "x = 1\n"})
+
+        class RuleA(Rule):
+            code = "A001"
+            message = "a"
+
+            def check(self, file_path: str, content: str) -> list:
+                return [Violation(file_path, 1, 0, self.code, self.message)]
+
+        class RuleB(Rule):
+            code = "B001"
+            message = "b"
+
+            def check(self, file_path: str, content: str) -> list:
+                return [Violation(file_path, 1, 0, self.code, self.message)]
+
+        violations = check_files([str(root)], [RuleA(), RuleB()], str(root))
+        codes = [v.code for v in violations]
+        assert "A001" in codes
+        assert "B001" not in codes
+
+    def test_select_wildcard_all(self, tmp_project):
+        pyproject = """\
+[tool.jg-linter]
+select = ["*"]
+"""
+        root = tmp_project(pyproject=pyproject, files={"app.py": "x = 1\n"})
+
+        class RuleA(Rule):
+            code = "A001"
+            message = "a"
+
+            def check(self, file_path: str, content: str) -> list:
+                return [Violation(file_path, 1, 0, self.code, self.message)]
+
+        class RuleB(Rule):
+            code = "B001"
+            message = "b"
+
+            def check(self, file_path: str, content: str) -> list:
+                return [Violation(file_path, 1, 0, self.code, self.message)]
+
+        violations = check_files([str(root)], [RuleA(), RuleB()], str(root))
+        codes = {v.code for v in violations}
+        assert codes == {"A001", "B001"}
+
+    def test_builtin_rule_not_selected_by_default(self, tmp_project):
+        root = tmp_project(files={"app.py": "def f():\n    import os\n"})
+        violations = check_files([str(root)], [], str(root))
+        assert violations == []
+
+    def test_builtin_rule_runs_when_selected(self, tmp_project):
+        pyproject = """\
+[tool.jg-linter]
+select = ["JG001"]
+"""
+        root = tmp_project(pyproject=pyproject, files={"app.py": "def f():\n    import os\n"})
+        violations = check_files([str(root)], [], str(root))
+        codes = [v.code for v in violations]
+        assert codes == ["JG001"]
+
+    def test_builtin_rule_runs_when_wildcard_selected(self, tmp_project):
+        pyproject = """\
+[tool.jg-linter]
+select = ["JG*"]
+"""
+        root = tmp_project(
+            files={"app.py": "def f():\n    import os\n"},
+            pyproject=pyproject,
+        )
+        violations = check_files([str(root)], [], str(root))
+        codes = {v.code for v in violations}
+        assert "JG001" in codes
+
+    def test_builtin_rule_runs_when_star_selected(self, tmp_project):
+        pyproject = """\
+[tool.jg-linter]
+select = ["*"]
+"""
+        root = tmp_project(
+            files={"app.py": "def f():\n    import os\n"},
+            pyproject=pyproject,
+        )
+        violations = check_files([str(root)], [], str(root))
+        codes = {v.code for v in violations}
+        assert "JG001" in codes
 
     def test_ignore_filters_rules(self, tmp_project):
         pyproject = """\
