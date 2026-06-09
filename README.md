@@ -82,16 +82,16 @@ By design, `# noqa` is **not** honored by default — rules must explicitly set 
 
 ## Configuration
 
-All configuration lives in `pyproject.toml` under `[tool.jg-lint]`:
+All configuration lives in `pyproject.toml` under `[tool.jg-linter]`:
 
 ```toml
-[tool.jg-lint]
+[tool.jg-linter]
 select = ["MY001", "JG*"]    # rules to enable (see "Selecting rules" below)
 ignore = ["MY002"]           # skip these rules globally
 exclude = [".venv/**", "build/**"]
 rules_path = "./rules"       # directory containing your custom rule modules
 
-[tool.jg-lint.per-file-ignores]
+[tool.jg-linter.per-file-ignores]
 "tests/**" = ["MY001"]       # skip MY001 in test files
 ```
 
@@ -149,7 +149,7 @@ Set `allow_noqa = True` on a rule to allow inline `# noqa: CODE` suppression. Wi
 ### 2. Point `jg-lint` at the rules folder
 
 ```toml
-[tool.jg-lint]
+[tool.jg-linter]
 rules_path = "./rules"
 ```
 
