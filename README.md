@@ -116,7 +116,7 @@ Use `ignore` (or `per-file-ignores`) to turn rules off, or set `select` explicit
 
 ### 1. Create a rule module
 
-Put it inside the directory you've configured as `rules_path` (e.g. `./rules/no_todo.py` or `./rules/no_todo/__init__.py`).
+Put it inside the directory you've configured as `rules_path` (e.g. `./rules/no_todo.py`).
 
 ```python
 from jg_linter import Rule, Violation
@@ -134,11 +134,9 @@ class NoTodoComments(Rule):
                     Violation(file_path, i, 1, self.code, self.message)
                 )
         return violations
-
-
-def get_rules() -> list[Rule]:
-    return [NoTodoComments()]
 ```
+
+Every `Rule` subclass found in the loaded modules is auto-instantiated — no `get_rules()` function required. If you need custom control (e.g. parameterized rules), define `get_rules()` and it will be used instead of auto-discovery.
 
 Each rule needs:
 
@@ -157,7 +155,12 @@ Set `allow_noqa = True` on a rule to allow inline `# noqa: CODE` suppression. Wi
 rules_path = "./rules"
 ```
 
-Every top-level `.py` file and package inside `rules_path` is imported automatically; any module exposing `get_rules()` contributes rules. Files and folders starting with `_` are skipped. The rules directory is prepended to `sys.path` during loading, so no `PYTHONPATH` setup is needed.
+`rules_path` can be either:
+
+- a flat directory of `.py` files (each file imported on its own), or
+- a Python package — i.e. the directory itself has `__init__.py`; submodules are imported under a synthetic `_jg_lint_user_rules` package so relative imports work.
+
+In either layout, every `Rule` subclass found is auto-instantiated. Files and folders starting with `_` are skipped. If a module defines `get_rules()`, that function is used verbatim (auto-discovery is bypassed for that module), which lets you parameterize or filter what gets registered.
 
 ### 3. Run
 

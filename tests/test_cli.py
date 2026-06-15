@@ -131,6 +131,85 @@ rules_path = "rules"
         (rules_dir / "empty.py").write_text("x = 1\n")
         assert discover_plugins(str(root)) == []
 
+    def test_loads_rules_dir_as_package(self, tmp_project):
+        root = tmp_project(
+            pyproject="""\
+[tool.jg-lint]
+rules_path = "rules"
+"""
+        )
+        rules_dir = root / "rules"
+        rules_dir.mkdir()
+        (rules_dir / "no_inline.py").write_text(
+            """\
+from jg_linter.plugin import Rule
+
+class NoInline(Rule):
+    code = "MY001"
+    message = "no inline"
+    def check(self, file_path, content):
+        return []
+"""
+        )
+        (rules_dir / "__init__.py").write_text(
+            """\
+from .no_inline import NoInline
+
+def get_rules():
+    return [NoInline()]
+"""
+        )
+
+        rules = discover_plugins(str(root))
+        assert [r.code for r in rules] == ["MY001"]
+
+    def test_auto_discovers_rule_subclasses_in_package(self, tmp_project):
+        root = tmp_project(
+            pyproject="""\
+[tool.jg-lint]
+rules_path = "rules"
+"""
+        )
+        rules_dir = root / "rules"
+        rules_dir.mkdir()
+        (rules_dir / "__init__.py").write_text("")
+        (rules_dir / "no_inline.py").write_text(
+            """\
+from jg_linter.plugin import Rule
+
+class NoInline(Rule):
+    code = "MY001"
+    message = "no inline"
+    def check(self, file_path, content):
+        return []
+"""
+        )
+        rules = discover_plugins(str(root))
+        assert [r.code for r in rules] == ["MY001"]
+
+    def test_auto_discovers_rule_subclasses_in_flat_module(self, tmp_project):
+        root = tmp_project(
+            pyproject="""\
+[tool.jg-lint]
+rules_path = "rules"
+"""
+        )
+        rules_dir = root / "rules"
+        rules_dir.mkdir()
+        (rules_dir / "no_inline.py").write_text(
+            """\
+from jg_linter.plugin import Rule
+
+class NoInline(Rule):
+    code = "MY001"
+    message = "no inline"
+    def check(self, file_path, content):
+        return []
+"""
+        )
+        rules = discover_plugins(str(root))
+        assert [r.code for r in rules] == ["MY001"]
+
 
 class TestRun:
     def test_returns_zero_no_violations(self, tmp_project, capsys):
