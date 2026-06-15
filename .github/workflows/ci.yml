@@ -39,8 +39,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
-          allow-prereleases: true
+          python-version: "3.12"
       - uses: astral-sh/setup-uv@v8.1.0
       - run: uv sync
       - run: uv run ruff check .
@@ -53,8 +52,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
-          allow-prereleases: true
+          python-version: "3.12"
       - uses: astral-sh/setup-uv@v8.1.0
       - run: uv sync
       - run: uv run --with maturin maturin develop
@@ -67,8 +65,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.14"
-          allow-prereleases: true
+          python-version: "3.12"
       - uses: astral-sh/setup-uv@v8.1.0
       - run: uv sync
       - run: uv run --with maturin maturin develop

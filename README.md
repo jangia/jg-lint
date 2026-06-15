@@ -4,7 +4,7 @@ Extensible Python linter with a Rust core.
 
 ## Installation
 
-Requires Python 3.14+.
+Requires Python 3.12+.
 
 ```bash
 uv add jg-lint
@@ -177,7 +177,7 @@ Found 2 violation(s)
 
 ## Contributing
 
-You need a Rust toolchain (stable), Python 3.14+, and [`uv`](https://docs.astral.sh/uv/).
+You need a Rust toolchain (stable), Python 3.12+, and [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/jangia/jg-lint.git
