@@ -96,6 +96,24 @@ pub fn run_check(
     let config = config::load_config(project_root);
     let builtin_rules = all_builtin_rules();
 
+    let any_selected = builtin_rules.iter().any(|r| {
+        config.is_rule_selected(r.code(), true) && !config.is_rule_ignored(r.code(), Path::new(""))
+    }) || python_rules.iter().any(|r| {
+        r.getattr(py, "code")
+            .and_then(|c| c.extract::<String>(py))
+            .map(|code| {
+                config.is_rule_selected(&code, false)
+                    && !config.is_rule_ignored(&code, Path::new(""))
+            })
+            .unwrap_or(false)
+    });
+    if !any_selected {
+        eprintln!(
+            "warning: no rules are selected — every check will be skipped. \
+             Add rule codes to `select` in [tool.jg-lint] or remove `ignore` entries."
+        );
+    }
+
     let mut noqa_allowed: HashSet<String> = HashSet::new();
     for rule in &builtin_rules {
         if rule.allow_noqa() {

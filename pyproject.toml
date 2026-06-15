@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "jg-lint"
-version = "0.5.0"
+version = "0.6.0"
 description = "Extensible Python linter written in Rust"
 readme = "README.md"
 license = "MIT"
@@ -19,10 +19,10 @@ features = ["extension-module"]
 python-source = "python"
 module-name = "jg_linter._internal"
 
-[tool.jg-linter]
+[tool.jg-lint]
 select = []
 ignore = []
-exclude = [".venv/**", "__pycache__/**", "*.egg-info/**", ".git/**", "target/**"]
+exclude = [".venv/**", "__pycache__/**", "*.egg-info/**", ".git/**", "target/**", "examples/**"]
 
 [dependency-groups]
 dev = [

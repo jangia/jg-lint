@@ -1,0 +1,2 @@
+[tool.jg-lint]
+select = ["JG002"]

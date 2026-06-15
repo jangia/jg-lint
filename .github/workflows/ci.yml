@@ -59,3 +59,17 @@ jobs:
       - run: uv sync
       - run: uv run --with maturin maturin develop
       - run: uv run pytest tests/ -v
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          allow-prereleases: true
+      - uses: astral-sh/setup-uv@v8.1.0
+      - run: uv sync
+      - run: uv run --with maturin maturin develop
+      - run: PATH="$PWD/.venv/bin:$PATH" bash scripts/e2e.sh

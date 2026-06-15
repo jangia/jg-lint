@@ -22,6 +22,8 @@ struct PyprojectToml {
 
 #[derive(Debug, Deserialize)]
 struct ToolSection {
+    #[serde(rename = "jg-lint")]
+    jg_lint: Option<Config>,
     #[serde(rename = "jg-linter")]
     jg_linter: Option<Config>,
 }
@@ -37,9 +39,9 @@ fn pattern_matches(pattern: &str, code: &str) -> bool {
 }
 
 impl Config {
-    pub fn is_rule_selected(&self, code: &str, is_builtin: bool) -> bool {
+    pub fn is_rule_selected(&self, code: &str, _is_builtin: bool) -> bool {
         if self.select.is_empty() {
-            return !is_builtin;
+            return true;
         }
         self.select.iter().any(|p| pattern_matches(p, code))
     }
@@ -90,7 +92,10 @@ pub fn load_config(project_root: &Path) -> Config {
     let Ok(parsed) = toml::from_str::<PyprojectToml>(&content) else {
         return Config::default();
     };
-    parsed.tool.and_then(|t| t.jg_linter).unwrap_or_default()
+    parsed
+        .tool
+        .and_then(|t| t.jg_lint.or(t.jg_linter))
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -98,10 +103,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_select_enables_plugins_not_builtins() {
+    fn empty_select_enables_all_rules() {
         let config = Config::default();
         assert!(config.is_rule_selected("PLUGIN001", false));
-        assert!(!config.is_rule_selected("JG001", true));
+        assert!(config.is_rule_selected("JG001", true));
     }
 
     #[test]
@@ -149,9 +154,9 @@ mod tests {
     }
 
     #[test]
-    fn builtin_requires_explicit_select() {
+    fn builtin_enabled_by_default() {
         let config = Config::default();
-        assert!(!config.is_rule_selected("JG001", true));
+        assert!(config.is_rule_selected("JG001", true));
         let config = Config {
             select: vec!["JG001".to_string()],
             ..Default::default()
@@ -218,20 +223,48 @@ mod tests {
     #[test]
     fn parse_pyproject_toml() {
         let content = r#"
-[tool.jg-linter]
+[tool.jg-lint]
 select = ["JG"]
 ignore = ["JG003"]
 exclude = [".venv/**"]
 
-[tool.jg-linter.per-file-ignores]
+[tool.jg-lint.per-file-ignores]
 "tests/**" = ["JG001"]
 "#;
         let parsed: PyprojectToml = toml::from_str(content).unwrap();
-        let config = parsed.tool.unwrap().jg_linter.unwrap();
+        let tool = parsed.tool.unwrap();
+        let config = tool.jg_lint.unwrap();
         assert_eq!(config.select, vec!["JG"]);
         assert_eq!(config.ignore, vec!["JG003"]);
         assert_eq!(config.exclude, vec![".venv/**"]);
         assert!(config.per_file_ignores.contains_key("tests/**"));
+    }
+
+    #[test]
+    fn parse_pyproject_toml_legacy_jg_linter() {
+        let content = r#"
+[tool.jg-linter]
+select = ["JG"]
+"#;
+        let parsed: PyprojectToml = toml::from_str(content).unwrap();
+        let tool = parsed.tool.unwrap();
+        assert!(tool.jg_lint.is_none());
+        assert_eq!(tool.jg_linter.unwrap().select, vec!["JG"]);
+    }
+
+    #[test]
+    fn parse_pyproject_prefers_jg_lint_over_jg_linter() {
+        let content = r#"
+[tool.jg-lint]
+select = ["NEW"]
+
+[tool.jg-linter]
+select = ["OLD"]
+"#;
+        let parsed: PyprojectToml = toml::from_str(content).unwrap();
+        let tool = parsed.tool.unwrap();
+        let config = tool.jg_lint.or(tool.jg_linter).unwrap();
+        assert_eq!(config.select, vec!["NEW"]);
     }
 
     #[test]

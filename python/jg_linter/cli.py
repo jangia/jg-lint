@@ -19,7 +19,9 @@ def discover_plugins(config_path: str | None = None) -> list[Rule]:
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
 
-    rules_path = data.get("tool", {}).get("jg-linter", {}).get("rules_path")
+    tool = data.get("tool", {})
+    section = tool.get("jg-lint") or tool.get("jg-linter") or {}
+    rules_path = section.get("rules_path")
     if not rules_path:
         return []
 

@@ -47,13 +47,13 @@ class TestDiscoverPlugins:
         assert rules == []
 
     def test_no_rules_path_configured(self, tmp_project):
-        root = tmp_project(pyproject="[tool.jg-linter]\n")
+        root = tmp_project(pyproject="[tool.jg-lint]\n")
         assert discover_plugins(str(root)) == []
 
     def test_rules_path_missing_raises(self, tmp_project):
         root = tmp_project(
             pyproject="""\
-[tool.jg-linter]
+[tool.jg-lint]
 rules_path = "./nope"
 """
         )
@@ -63,7 +63,7 @@ rules_path = "./nope"
     def test_loads_top_level_py_file(self, tmp_project):
         root = tmp_project(
             pyproject="""\
-[tool.jg-linter]
+[tool.jg-lint]
 rules_path = "rules"
 """
         )
@@ -78,7 +78,7 @@ rules_path = "rules"
     def test_loads_package(self, tmp_project):
         root = tmp_project(
             pyproject="""\
-[tool.jg-linter]
+[tool.jg-lint]
 rules_path = "rules"
 """
         )
@@ -92,7 +92,7 @@ rules_path = "rules"
     def test_loads_multiple_modules(self, tmp_project):
         root = tmp_project(
             pyproject="""\
-[tool.jg-linter]
+[tool.jg-lint]
 rules_path = "rules"
 """
         )
@@ -107,7 +107,7 @@ rules_path = "rules"
     def test_skips_underscore_prefixed(self, tmp_project):
         root = tmp_project(
             pyproject="""\
-[tool.jg-linter]
+[tool.jg-lint]
 rules_path = "rules"
 """
         )
@@ -122,7 +122,7 @@ rules_path = "rules"
     def test_module_without_get_rules_ignored(self, tmp_project):
         root = tmp_project(
             pyproject="""\
-[tool.jg-linter]
+[tool.jg-lint]
 rules_path = "rules"
 """
         )

@@ -56,7 +56,9 @@ The `--config` flag points to the directory containing `pyproject.toml` (default
 | JG001 | Imports must be at module top level                 |
 | JG002 | `if` statements are not allowed in test functions (any function or method whose name starts with `test_`) |
 
-Built-in rules are **opt-in**: they only run when you list them in `select` (see [Configuration](#configuration)). For example, `select = ["JG*"]` enables every built-in rule, and `select = ["JG001"]` enables only `JG001`.
+All built-in rules are **enabled by default**. When `select` is empty (or omitted), every implemented built-in rule runs alongside any plugin rules. To narrow what runs, list rule codes explicitly in `select` (e.g. `select = ["JG001"]`) or silence individual rules via `ignore` / `per-file-ignores`.
+
+If both `select` and `ignore` end up filtering out every rule, `jg-lint` prints a warning on stderr so you know nothing was actually checked.
 
 Output looks like:
 
@@ -82,16 +84,16 @@ By design, `# noqa` is **not** honored by default — rules must explicitly set 
 
 ## Configuration
 
-All configuration lives in `pyproject.toml` under `[tool.jg-linter]`:
+All configuration lives in `pyproject.toml` under `[tool.jg-lint]` (the legacy `[tool.jg-linter]` section is still read as a fallback for backwards compatibility):
 
 ```toml
-[tool.jg-linter]
+[tool.jg-lint]
 select = ["MY001", "JG*"]    # rules to enable (see "Selecting rules" below)
 ignore = ["MY002"]           # skip these rules globally
 exclude = [".venv/**", "build/**"]
 rules_path = "./rules"       # directory containing your custom rule modules
 
-[tool.jg-linter.per-file-ignores]
+[tool.jg-lint.per-file-ignores]
 "tests/**" = ["MY001"]       # skip MY001 in test files
 ```
 
@@ -105,8 +107,10 @@ Each entry in `select`, `ignore`, and `per-file-ignores` is matched against a ru
 
 Defaults when `select` is empty:
 
-- **Built-in rules** (e.g. `JG001`, `JG002`) are **not** enabled. List them explicitly with `select = ["JG*"]` or by code.
-- **Plugin rules** from `rules_path` are enabled.
+- **Every implemented built-in rule** (e.g. `JG001`, `JG002`) is enabled.
+- **Every plugin rule** loaded from `rules_path` is enabled.
+
+Use `ignore` (or `per-file-ignores`) to turn rules off, or set `select` explicitly to opt into a narrower subset.
 
 ## Writing custom rules
 
@@ -149,7 +153,7 @@ Set `allow_noqa = True` on a rule to allow inline `# noqa: CODE` suppression. Wi
 ### 2. Point `jg-lint` at the rules folder
 
 ```toml
-[tool.jg-linter]
+[tool.jg-lint]
 rules_path = "./rules"
 ```
 
@@ -184,7 +188,10 @@ uv run maturin develop
 ```bash
 cargo test                 # Rust unit tests
 uv run pytest              # Python tests (rebuild with `maturin develop` if Rust changed)
+bash scripts/e2e.sh        # CLI smoke test against fixtures in examples/
 ```
+
+`examples/` contains one folder per built-in rule. Each folder has its own `pyproject.toml` that selects only that rule, plus `bad*.py` fixtures that must be flagged and `good*.py` fixtures that must not. `scripts/e2e.sh` greps the CLI output to confirm both halves; CI runs it on every push.
 
 ### Linting and formatting
 
