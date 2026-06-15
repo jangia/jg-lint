@@ -27,7 +27,7 @@ poetry add jg-lint
 To build from source, you need [Maturin](https://www.maturin.rs/) and a Rust toolchain:
 
 ```bash
-git clone https://github.com/giacosoft/jg-lint.git
+git clone https://github.com/jangia/jg-lint.git
 cd jg-lint
 uv sync
 uv run maturin develop
@@ -177,7 +177,7 @@ Found 2 violation(s)
 You need a Rust toolchain (stable), Python 3.14+, and [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
-git clone https://github.com/giacosoft/jg-lint.git
+git clone https://github.com/jangia/jg-lint.git
 cd jg-lint
 uv sync
 uv run maturin develop
@@ -216,6 +216,15 @@ cargo clippy --fix --all-targets
 uv run ruff check --fix .
 uv run ruff format .
 ```
+
+### Releasing
+
+Releases are driven by git tags of the form `vX.Y.Z`. To cut one:
+
+1. Bump `version` in `pyproject.toml`, commit, and merge to `main`.
+2. Tag `main` and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+
+Pushing the tag triggers `.github/workflows/release.yml`, which verifies the tag matches the `pyproject.toml` version, builds the sdist + wheels for all platforms, publishes to PyPI, and creates a GitHub Release with the artifacts and auto-generated notes attached. If the tag/version check fails the run aborts before anything is published.
 
 ## License
 
