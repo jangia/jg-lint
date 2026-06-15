@@ -1,6 +1,6 @@
 def test_user_role():
     user = {"role": "admin"}
     if user["role"] == "admin":
-        assert True
+        assert user["role"] == "admin"
     else:
-        assert False
+        assert user["role"] != "admin"
